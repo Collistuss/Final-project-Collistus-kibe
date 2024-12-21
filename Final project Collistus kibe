@@ -1,0 +1,100 @@
+import json
+import os
+
+class FinanceApp:
+    def __init__(self):
+        self.data_file = 'farmer_finance_data.json'
+        self.load_data()
+
+    def load_data(self):
+        if os.path.exists(self.data_file):
+            with open(self.data_file, 'r') as file:
+                self.data = json.load(file)
+        else:
+            self.data = {
+                'income': 0,
+                'expenses': 0,
+                'savings': 0,
+                'transactions': []
+            }
+
+    def save_data(self):
+        with open(self.data_file, 'w') as file:
+            json.dump(self.data, file, indent=4)
+
+    def add_income(self, amount):
+        self.data['income'] += amount
+        self.data['transactions'].append({'type': 'income', 'amount': amount})
+        self.save_data()
+        print(f"\n✅ Added income: ${amount:.2f}")
+
+    def add_expense(self, amount):
+        self.data['expenses'] += amount
+        self.data['transactions'].append({'type': 'expense', 'amount': amount})
+        self.save_data()
+        print(f"\n❌ Added expense: ${amount:.2f}")
+
+    def add_savings(self, amount):
+        self.data['savings'] += amount
+        self.data['transactions'].append({'type': 'savings', 'amount': amount})
+        self.save_data()
+        print(f"\n💰 Added to savings: ${amount:.2f}")
+
+    def view_balance(self):
+        balance = self.data['income'] - self.data['expenses']
+        print(f"\n📊 Current Balance: ${balance:.2f}")
+
+    def view_savings(self):
+        print(f"\n🏦 Total Savings: ${self.data['savings']:.2f}")
+
+    def view_transactions(self):
+        print("\n📜 Transaction History:")
+        for transaction in self.data['transactions']:
+            print(f"{transaction['type'].capitalize()}: ${transaction['amount']:.2f}")
+
+    def get_positive_float(self, prompt):
+        while True:
+            try:
+                value = float(input(prompt))
+                if value < 0:
+                    raise ValueError("Value must be positive.")
+                return value
+            except ValueError as e:
+                print(f"Invalid input: {e}. Please try again.")
+
+    def run(self):
+        while True:
+            print("\n--- Farmer Finance App ---")
+            print("1) Add Income")
+            print("2) Add Expense")
+            print("3) Add Savings")
+            print("4) View Balance")
+            print("5) View Savings")
+            print("6) View Transactions")
+            print("7) Exit")
+            choice = input("Choose an option: ")
+
+            if choice == '1':
+                amount = self.get_positive_float("Enter income amount: ")
+                self.add_income(amount)
+            elif choice == '2':
+                amount = self.get_positive_float("Enter expense amount: ")
+                self.add_expense(amount)
+            elif choice == '3':
+                amount = self.get_positive_float("Enter savings amount: ")
+                self.add_savings(amount)
+            elif choice == '4':
+                self.view_balance()
+            elif choice == '5':
+                self.view_savings()
+            elif choice == '6':
+                self.view_transactions()
+            elif choice == '7':
+                print("Exiting the app. Goodbye!")
+                break
+            else:
+                print("Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    app = FinanceApp()
+    app.run()
