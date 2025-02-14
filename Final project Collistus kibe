@@ -1,100 +1,135 @@
-import json
+import csv
 import os
+from colorama import Fore, Style, init
+import matplotlib.pyplot as plt
 
-class FinanceApp:
-    def __init__(self):
-        self.data_file = 'farmer_finance_data.json'
-        self.load_data()
+# Initialize Colorama
+init(autoreset=True)
 
-    def load_data(self):
-        if os.path.exists(self.data_file):
-            with open(self.data_file, 'r') as file:
-                self.data = json.load(file)
-        else:
-            self.data = {
-                'income': 0,
-                'expenses': 0,
-                'savings': 0,
-                'transactions': []
-            }
+# File to save historical records
+FILE_NAME = "farm_records.csv"
 
-    def save_data(self):
-        with open(self.data_file, 'w') as file:
-            json.dump(self.data, file, indent=4)
+# Initialize records
+expenses = []
+income = []
+budget = 0
 
-    def add_income(self, amount):
-        self.data['income'] += amount
-        self.data['transactions'].append({'type': 'income', 'amount': amount})
-        self.save_data()
-        print(f"\n✅ Added income: ${amount:.2f}")
+# Load existing data if available
+if os.path.exists(FILE_NAME):
+    with open(FILE_NAME, "r") as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip header
+        for row in reader:
+            if row[0] == "Expense":
+                expenses.append((row[1], float(row[2])))
+            elif row[0] == "Income":
+                income.append((row[1], float(row[2])))
 
-    def add_expense(self, amount):
-        self.data['expenses'] += amount
-        self.data['transactions'].append({'type': 'expense', 'amount': amount})
-        self.save_data()
-        print(f"\n❌ Added expense: ${amount:.2f}")
+def save_to_file():
+    """Save current records to a CSV file."""
+    with open(FILE_NAME, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Type", "Category", "Amount"])
+        for desc, amount in expenses:
+            writer.writerow(["Expense", desc, amount])
+        for desc, amount in income:
+            writer.writerow(["Income", desc, amount])
 
-    def add_savings(self, amount):
-        self.data['savings'] += amount
-        self.data['transactions'].append({'type': 'savings', 'amount': amount})
-        self.save_data()
-        print(f"\n💰 Added to savings: ${amount:.2f}")
+def visualize_data():
+    """Generate visual reports for expenses and income."""
+    expense_categories = [desc for desc, _ in expenses]
+    expense_amounts = [amount for _, amount in expenses]
 
-    def view_balance(self):
-        balance = self.data['income'] - self.data['expenses']
-        print(f"\n📊 Current Balance: ${balance:.2f}")
+    income_categories = [desc for desc, _ in income]
+    income_amounts = [amount for _, amount in income]
 
-    def view_savings(self):
-        print(f"\n🏦 Total Savings: ${self.data['savings']:.2f}")
+    if expense_amounts:
+        # Pie chart for expenses
+        plt.figure(figsize=(10, 5))
+        plt.pie(expense_amounts, labels=expense_categories, autopct='%1.1f%%', startangle=140)
+        plt.title("Expenses Breakdown")
+        plt.show()
 
-    def view_transactions(self):
-        print("\n📜 Transaction History:")
-        for transaction in self.data['transactions']:
-            print(f"{transaction['type'].capitalize()}: ${transaction['amount']:.2f}")
+    if income_amounts:
+        # Bar chart for income
+        plt.figure(figsize=(10, 5))
+        plt.bar(income_categories, income_amounts, color='green')
+        plt.title("Income Breakdown")
+        plt.xlabel("Categories")
+        plt.ylabel("Amount (KES)")
+        plt.show()
 
-    def get_positive_float(self, prompt):
-        while True:
-            try:
-                value = float(input(prompt))
-                if value < 0:
-                    raise ValueError("Value must be positive.")
-                return value
-            except ValueError as e:
-                print(f"Invalid input: {e}. Please try again.")
+def main():
+    print(Fore.CYAN + Style.BRIGHT + "Welcome to the Farm Expense and Profit Calculator!")
+    global budget
 
-    def run(self):
-        while True:
-            print("\n--- Farmer Finance App ---")
-            print("1) Add Income")
-            print("2) Add Expense")
-            print("3) Add Savings")
-            print("4) View Balance")
-            print("5) View Savings")
-            print("6) View Transactions")
-            print("7) Exit")
-            choice = input("Choose an option: ")
+    while True:
+        print(Fore.YELLOW + "\nMenu:")
+        print(Fore.GREEN + "1. Set Monthly Budget")
+        print(Fore.RED + "2. Add Expense")
+        print(Fore.BLUE + "3. Add Income")
+        print(Fore.MAGENTA + "4. View Summary")
+        print(Fore.CYAN + "5. Visualize Data")
+        print(Fore.RED + "6. Exit")
 
-            if choice == '1':
-                amount = self.get_positive_float("Enter income amount: ")
-                self.add_income(amount)
-            elif choice == '2':
-                amount = self.get_positive_float("Enter expense amount: ")
-                self.add_expense(amount)
-            elif choice == '3':
-                amount = self.get_positive_float("Enter savings amount: ")
-                self.add_savings(amount)
-            elif choice == '4':
-                self.view_balance()
-            elif choice == '5':
-                self.view_savings()
-            elif choice == '6':
-                self.view_transactions()
-            elif choice == '7':
-                print("Exiting the app. Goodbye!")
-                break
+        choice = input(Fore.CYAN + "Enter your choice (1-6): ")
+
+        if choice == "1":
+            budget = float(input(Fore.GREEN + "Set your monthly budget (KES): "))
+            print(Fore.GREEN + f"Budget set to KES {budget}!")
+
+        elif choice == "2":
+            print(Fore.YELLOW + "\n--- Add Expense ---")
+            expense = float(input(Fore.RED + "Enter expense amount (KES): "))
+            description = input(Fore.RED + "Enter expense category (e.g., seeds, labor): ")
+            expenses.append((description, expense))
+            print(Fore.GREEN + "Expense added successfully!")
+
+            # Check if budget is exceeded
+            total_expenses = sum(amount for _, amount in expenses)
+            if budget and total_expenses > budget:
+                print(Fore.RED + f"Warning: You have exceeded your budget of KES {budget}!")
+
+        elif choice == "3":
+            print(Fore.YELLOW + "\n--- Add Income ---")
+            income_amount = float(input(Fore.BLUE + "Enter income amount (KES): "))
+            source = input(Fore.BLUE + "Enter income category (e.g., maize sales): ")
+            income.append((source, income_amount))
+            print(Fore.GREEN + "Income added successfully!")
+
+        elif choice == "4":
+            print(Fore.CYAN + "\n--- Summary ---")
+            print(Fore.YELLOW + "Expenses:")
+            total_expenses = 0
+            for desc, amount in expenses:
+                print(Fore.RED + f"  - {desc}: KES {amount}")
+                total_expenses += amount
+
+            print(Fore.YELLOW + "\nIncome:")
+            total_income = 0
+            for source, amount in income:
+                print(Fore.BLUE + f"  - {source}: KES {amount}")
+                total_income += amount
+
+            profit = total_income - total_expenses
+            print(Fore.GREEN + f"\nTotal Expenses: KES {total_expenses}")
+            print(Fore.GREEN + f"Total Income: KES {total_income}")
+            if profit >= 0:
+                print(Fore.GREEN + f"Net Profit: KES {profit}")
             else:
-                print("Invalid option. Please try again.")
+                print(Fore.RED + f"Net Loss: KES {profit}")
+
+        elif choice == "5":
+            visualize_data()
+
+        elif choice == "6":
+            print(Fore.MAGENTA + "Saving records and exiting the app. Goodbye!")
+            save_to_file()
+            break
+
+        else:
+            print(Fore.RED + "Invalid choice. Please try again.")
 
 if __name__ == "__main__":
-    app = FinanceApp()
-    app.run()
+    main()
+
